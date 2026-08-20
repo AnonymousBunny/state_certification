@@ -133,7 +133,6 @@ def run_experiment (target_indices, lab_indices, b, k, device= "cpu"): #target_i
     for r in range(1, n):
         print ("doing ", r)
         cur_time= time.perf_counter()
-        g= GHO_experiment(b, n, r, k, target_indices, lab_indices, device= device)
         prox_fid= GHO_experiment.run_batched_experiment(b, n, r, k, target_indices, lab_indices, device= device)
         print ("output : ", prox_fid)
         next_time= time.perf_counter()
