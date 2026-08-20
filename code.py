@@ -15,6 +15,10 @@ def get_complex (r, theta):
 
 
 
+'''
+arr: indices for constructing a product state. shape: (n)
+output: corresponding product state. shape: (2^n)
+'''
 def gen_array(n, arr= None, device= "cpu"):
     if (arr==None):
         arr= torch.randint(low=0, high=4, size=(n,), device= device)
@@ -32,7 +36,15 @@ def gen_array(n, arr= None, device= "cpu"):
 
 
 
-
+'''
+b= batch size
+n= number of qubits
+r= number of measured qubits
+indices_1: choice of indices for the first r qubits. Shape: (b,k,r)
+indices_2: choice of indices for the last n-r qubits. Shape: (b,k,n-r)
+output: corresonding quantum state; each batch element is a matrix of size (2^r, 2^{n-r})
+output shape: (b, 2^r, 2^{n-r})
+'''
 
 
 
@@ -57,6 +69,17 @@ def memory_efficient_generate_batch_GHO_state(b, n, r, k, indices_1= None, indic
 
 
 
+'''
+a GHO_experiment instance contains the description of two states from the GHO ensemble, and r (number of measured qubits)
+target_indices: indices (in 0,1,2,3) describing the construction of the product states in the target state. Shape: (b,k,n)
+lab_indices: indices (in 0,1,2,3) describing the construction of the product states in the lab state. Shape: (b,k,n)
+self.f and self.g store the target state and lab state respectively as a matrix of size (2^r,2^{n-r}) (for conveniently computing the proxy fidelity). Shape: (b, 2^r, 2^{n-r})
+self.row_normalized_f normalizes every row of f. (a normalized row is basically a post measurement state)
+self.proxy_fidelity outputs the proxy fidelity
+
+
+
+'''
 class GHO_experiment():
     def __init__ (self, batch_size, n, r, k, target_indices, lab_indices, device= "cpu"):
         self.n= n
@@ -89,6 +112,11 @@ class GHO_experiment():
         fidelities= fidelities*fidelities
         proxy_fidelities= torch.sum(fidelities, dim=1) #b
         return proxy_fidelities #b
+
+    '''
+    Take target_indices and lab_indices as input; construct the corresponding GHO states and output their proxy fidelity
+        
+    '''
 
     @classmethod
     @torch.inference_mode()
@@ -126,8 +154,18 @@ class GHO_experiment():
 
  
 
+'''
 
-def run_experiment (target_indices, lab_indices, b, k, device= "cpu"): #target_indices: (b*k, n), #lab_indices: (b*k, n)
+target_indices: indices for the product states for the target state. Shape: (b,k,n)
+lab_indices: indices for the product states of the lab state. Shape: (b,k,n)
+runs over r=1, 2, ..., n-1 where r is the number of measured qubits; and calculates the proxy fidelities. 
+returns a list proxy_fid, containing the proxy_fidelities for this range of r
+
+'''
+
+
+
+def run_experiment (target_indices, lab_indices, b, k, device= "cpu"): 
     n= target_indices.shape[-1]
     proxy_fids= []
     for r in range(1, n):
@@ -142,6 +180,16 @@ def run_experiment (target_indices, lab_indices, b, k, device= "cpu"): #target_i
 
     return proxy_fids
 
+
+''' 
+n= number of qubits, 
+b = batch size, 
+k= number of states in superposition
+
+Generates the random indices used to construct the product states (target_indices and lab_indices) and passes them to run_experiment
+
+
+'''
 def run(n, b, k, device= "cpu"):
     target_indices= torch.randint(low=0, high=4, size= (b, k, n,), device= device)  
     lab_indices= torch.randint(low=0, high=4, size= (b,k, n,), device= device)
@@ -161,4 +209,4 @@ if __name__=="__main__":
     batch_size= 20
     k= 100
 
-    run(n, batch_size, k)
+    run(n, batch_size, k, device)
